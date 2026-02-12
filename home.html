@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard – Sistema de Detección de Astenia</title>
+<link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Librerías jsPDF para exportar historial -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+<!-- PWA Manifest y Iconos -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e293b">
+<link rel="apple-touch-icon" href="img/icon-192.png">
+
+</head>
+
+<body>
+<header class="top-header">
+    <div class="header-left">
+        <img src="img/white-logo.png" alt="Logo" class="logo" id="headerLogo">
+        <div class="burger" id="burgerBtn">☰</div>
+    </div>
+</header>
+
+<div class="content">
+    <div id="overlay" class="overlay"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-container">
+            <img src="img/white-logo.png" alt="Logo" class="logo" id="sidebarLogo"> 
+        </div>
+        <a class="menu-btn active" data-target="inicio">Inicio</a>
+        <a class="menu-btn" data-target="deteccion">Detección en Tiempo Real</a>
+        <a class="menu-btn" data-target="usuarios">Gestión de Usuario</a>
+        <a class="menu-btn" data-target="historial">Historial</a>
+        <a href="#" id="logoutBtn">Cerrar Sesión</a>
+
+        <div class="sidebar-footer">
+            <button id="themeToggle" class="theme-btn">
+                <span>🌞/🌙</span> Cambiar Tema
+            </button>
+        </div>
+    </div>
+
+    <div id="closeSidebar" class="close-sidebar">✕</div>
+
+    <div class="main normal-container">
+        
+        <section id="inicio" class="card">
+            <div id="medicalAlertCard" class="medical-card" style="display: none;">
+                <div class="med-icon">🩺</div>
+                <div class="med-content">
+                    <h3>Nos preocupamos por ti ❤️</h3>
+                    <p id="medText">Hemos notado fatiga persistente en tus últimos viajes. Te sugerimos consultar a un especialista.</p>
+                    <div class="med-feedback">
+                        <span>¿Has podido descansar o consultar al médico?</span>
+                        <div class="med-buttons">
+                            <button class="med-btn confirm" id="btnMedYes">Gracias, ya estoy en eso</button>
+                            <button class="med-btn deny" id="btnMedNo">Lo revisaré luego</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h2>Tendencia Mensual de Conducción</h2>
+            
+            <div class="chart-container">
+                <div id="customLegend" class="chart-legend-html"></div>
+
+                <div class="chart-scroll-wrapper">
+                    <div class="chart-body">
+                        <canvas id="fatigueChart"></canvas> 
+                    </div>
+                </div>
+            </div>
+
+            <p>Evolución de los minutos acumulados por estado en los últimos 30 días.</p>
+            <div id="chartLegendInfo">
+                <p>💡 <strong>Guía:</strong> 
+                <span style="color:#10b981">● Normal</span> (Conducción segura), 
+                <span style="color:#facc15">● Fatiga Leve</span> (Cansancio ocular), 
+                <span style="color:#f97316">● Somnolencia</span> (Peligro moderado), 
+                <span style="color:#ef4444">● Microsueño</span> (Peligro crítico).</p>
+            </div>
+        </section>
+
+
+        <section id="deteccion" class="card" style="display:none;">
+            <h2>Detección en Tiempo Real</h2>
+            
+            <div class="night-mode-container">
+                <label class="switch">
+                    <input type="checkbox" id="nightModeToggle">
+                    <span class="slider round"></span>
+                </label>
+                <span class="night-label">🌙 Modo Nocturno (Potenciar Cámara)</span>
+            </div>
+
+            <div class="cam-container" id="camFeed">
+                <video class="input_video" autoplay playsinline style="display:none;"></video>
+                <canvas class="output_canvas" style="display:none;"></canvas>
+                
+                <div id="estado">
+                    <p>Presiona "Iniciar Detección" para comenzar.</p>
+                </div>
+                
+                <div class="btn-detection-container">
+                    <button id="startDetection" class="primary-button">Iniciar Detección</button>
+                    <button id="stopDetection" class="primary-button" style="display:none;">Detener Detección</button>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="usuarios" class="card" style="display:none;">
+            <h2 style="text-align:center;">Mi Perfil</h2>
+            <form id="editProfileForm">
+                <div class="form-group">
+                    <label for="userName">Nombre:</label>
+                    <input type="text" id="userName" name="userName" required>
+                </div>
+                <div class="form-group">
+                    <label for="userEmail">Email:</label>
+                    <input type="email" id="userEmail" name="userEmail" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">Nueva Contraseña:</label>
+                    <input type="password" id="newPassword" name="newPassword" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="repeatPassword">Repetir Contraseña:</label>
+                    <input type="password" id="repeatPassword" name="repeatPassword">
+                </div>
+                <div class="form-group">
+                    <label for="currentPassword">Contraseña Actual:</label>
+                    <input type="password" id="currentPassword" name="currentPassword" autocomplete="current-password">
+                </div>
+                <div id="profileMessage"></div>
+                <button type="submit" class="primary-button">Guardar Cambios</button>
+            </form>
+        </section>
+
+
+       <section id="historial" class="card" style="display:none;">
+            <h2>Historial y Reportes</h2>
+
+            <div class="report-panel">
+                <h3>📄 Generar Informe Detallado</h3>
+                <div class="report-controls">
+                    <div class="date-group">
+                        <label>Desde:</label>
+                        <input type="date" id="reportStartDate">
+                    </div>
+                    <div class="date-group">
+                        <label>Hasta:</label>
+                        <input type="date" id="reportEndDate">
+                    </div>
+                    <button id="btnDownloadPDF" class="primary-button pdf-btn">
+                        📥 Descargar PDF
+                    </button>
+                </div>
+                <p class="report-note">Este informe incluye evidencia técnica, tablas de métricas detalladas y bitácora de alertas para fines personales, corporativos o médicos.</p>
+            </div>
+            
+            <hr class="divider">
+
+            <h3>Bitácora de Alertas en Pantalla</h3>
+
+            <div class="history-filters">
+                <div class="filter-wrapper">
+                    <div class="filter-item">
+                        <label for="filterDate">Fecha:</label>
+                        <input type="date" id="filterDate">
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="filterType">Causa:</label>
+                        <select id="filterType">
+                            <option value="">Todas</option>
+                            <option value="Microsueño">Microsueño</option>
+                            <option value="Bostezos">Bostezos</option>
+                            <option value="Somnolencia">Somnolencia</option> 
+                            <option value="Fatiga">Fatiga</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="filterLevel">Nivel:</label>
+                        <select id="filterLevel">
+                            <option value="">Todos</option>
+                            <option value="Leve">Leve</option>
+                            <option value="Moderado">Moderado</option>
+                            <option value="Alto riesgo">Alto riesgo</option>
+                        </select>
+                    </div>
+
+                    <button id="applyFilters" class="primary-button">Filtrar</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Causa Detectada</th>
+                            <th>Nivel de Riesgo</th>
+                            <th>Valor Medido</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable">
+                        <tr><td colspan="4" style="text-align:center;">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination">
+                <button class="page-btn" id="prevPage">
+                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <span id="pageInfo">Página 1</span>
+                <button class="page-btn" id="nextPage">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<audio id="alarmSound" loop preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+</audio>
+<audio id="notifySound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2344/2344-preview.mp3" type="audio/mpeg">
+</audio>
+<div id="warningPopup" class="warning-popup alert-orange">
+    <div class="warning-content" id="popupTextContent"></div>
+</div>
+
+<!-- MODAL RECOMENDACIONES POST-VIAJE -->
+<div id="recommendationModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="recTitle">Resumen del Viaje</h2>
+            <button class="close-modal" id="closeRecModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="recIcon" class="rec-icon">✅</div>
+            <h3 id="recSubtitle">¡Buen trabajo!</h3>
+            <p id="recText">Mantuviste un excelente nivel de atención.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="primary-button" id="btnCloseRec">Entendido</button>
+        </div>
+    </div>
+</div>
+
+<!-- ESTILOS MODAL -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script type="module" src="script.js"></script>
+<script src="burger-btn.js"></script>
+
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    // 1. Configuración
+    const supabaseUrl = 'https://roogjmgxghbuiogpcswy.supabase.co'
+    const supabaseKey = 'sb_publishable_RTN2PXvdWOQFfUySAaTa_g_LLe-T_NU'
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // Variables globales
+    let myChart = null;
+    let currentUserId = null;
+
+    // Inicializar
+    async function initDashboard() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            currentUserId = user.id; 
+            
+            // Cargar tema guardado antes de renderizar
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.setAttribute('data-theme', 'light');
+                updateLogos(true);
+            }
+
+            loadChartData(user.id);
+            fetchHistory(1);
+        }
+    }
+
+    document.querySelector('.menu-btn[data-target="inicio"]').addEventListener('click', () => {
+        setTimeout(() => {
+            if(myChart) {
+                myChart.resize();
+                myChart.update();
+            }
+        }, 50);
+    });
+
+    // --- CARGA DE DATOS OPTIMIZADA ---
+    async function loadChartData(userId) {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+
+        const { data: sesiones } = await supabase
+            .from('sesiones_conduccion')
+            .select('id_sesion')
+            .eq('id_usuario', userId);
+        
+        const sessionIds = sesiones ? sesiones.map(s => s.id_sesion) : [];
+
+        if (sessionIds.length === 0) {
+            renderEmptyChart();
+            return;
+        }
+
+        const { data: stats, error } = await supabase
+            .from('resumen_diario')
+            .select('fecha, riesgo, total_minutos')
+            .in('id_sesion', sessionIds)
+            .gte('fecha', startDate.toISOString())
+            .order('fecha', { ascending: true });
+
+        if (error) {
+            console.error("Error cargando gráfico:", error);
+            return;
+        }
+
+        processAndRenderChart(stats, startDate, endDate);
+    }
+
+    function processAndRenderChart(stats, startDate, endDate) {
+        const dailyStats = {};
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const dateStr = d.toISOString().split('T')[0];
+            dailyStats[dateStr] = { Normal: 0, Leve: 0, Moderado: 0, Alto: 0, Total: 0 };
+        }
+
+        stats.forEach(item => {
+            const dateStr = item.fecha; 
+            if (dailyStats[dateStr]) {
+                let nivel = item.riesgo || 'Normal';
+                if (nivel === 'Alto riesgo') nivel = 'Alto';
+                if (dailyStats[dateStr][nivel] !== undefined) {
+                    dailyStats[dateStr][nivel] += item.total_minutos; 
+                    dailyStats[dateStr].Total += item.total_minutos;
+                }
+            }
+        });
+
+        const labels = Object.keys(dailyStats);
+        const dataNormal = [], dataLeve = [], dataModerado = [], dataAlto = [];
+
+        labels.forEach(date => {
+            const day = dailyStats[date];
+            const total = day.Total || 1; 
+            if (day.Total === 0) {
+                dataNormal.push(null); dataLeve.push(null); dataModerado.push(null); dataAlto.push(null);
+            } else {
+                dataNormal.push((day.Normal / total) * 100);
+                dataLeve.push((day.Leve / total) * 100);
+                dataModerado.push((day.Moderado / total) * 100);
+                dataAlto.push((day.Alto / total) * 100);
+            }
+        });
+
+        renderChart(labels, dataNormal, dataLeve, dataModerado, dataAlto);
+    }
+
+    function renderChart(labels, dNormal, dLeve, dModerado, dAlto) {
+        const ctx = document.getElementById('fatigueChart').getContext('2d');
+        const isMobile = window.innerWidth < 768;
+        
+        // Colores dinámicos según el tema
+        const isLight = document.body.getAttribute('data-theme') === 'light';
+        const textColor = isLight ? '#475569' : '#94a3b8';
+        const gridColor = isLight ? '#e2e8f0' : '#334155';
+
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Normal', data: dNormal, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.15)', borderWidth: isMobile ? 1.5 : 2, tension: 0.3, pointRadius: isMobile ? 2 : 3, pointHoverRadius: 5, pointHitRadius: 40, fill: true },
+                    { label: 'Fatiga', data: dLeve, borderColor: '#facc15', backgroundColor: 'rgba(250, 204, 21, 0.2)', borderWidth: isMobile ? 1.5 : 2, tension: 0.3, pointRadius: isMobile ? 2 : 3, pointHoverRadius: 5, pointHitRadius: 40, fill: true },
+                    { label: 'Somnolencia', data: dModerado, borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.2)', borderWidth: isMobile ? 1.5 : 2, tension: 0.3, pointRadius: isMobile ? 2 : 3, pointHoverRadius: 5, pointHitRadius: 40, fill: true },
+                    { label: 'Microsueño', data: dAlto, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.2)', borderWidth: isMobile ? 1.5 : 2, tension: 0.3, pointRadius: isMobile ? 2 : 3, pointHoverRadius: 5, pointHitRadius: 40, fill: true }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                resizeDelay: 200,
+                interaction: { mode: 'nearest', axis: 'x', intersect: false },
+                layout: { padding: { top: 20, left: 5, right: 10, bottom: 0 } },
+                scales: {
+                    x: {
+                        ticks: { 
+                            color: textColor, // <--- DINÁMICO
+                            font: { size: isMobile ? 10 : 11 },
+                            minRotation: isMobile ? 0 : 45, 
+                            maxRotation: isMobile ? 0 : 45,
+                            autoSkip: true, autoSkipPadding: 15, maxTicksLimit: isMobile ? 12 : 31,
+                            callback: function(val) { const label = this.getLabelForValue(val); return isMobile ? label.split('-')[2] + '/' + label.split('-')[1] : label; }
+                        },
+                        grid: { color: gridColor, drawBorder: false, display: true }
+                    },
+                    y: {
+                        beginAtZero: true, max: 100,
+                        ticks: { color: textColor, font: { size: 10 }, callback: v => v + "%", maxTicksLimit: 6 },
+                        grid: { color: gridColor, drawBorder: false },
+                        title: { 
+                            display: !isMobile, 
+                            text: 'Tiempo (%)', 
+                            color: textColor // <--- AQUI ESTABA EL ERROR (ARREGLADO)
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: false },
+                    tooltip: {
+                        enabled: true, backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleFont: { size: isMobile ? 11 : 13, weight: 'bold' }, bodyFont: { size: isMobile ? 11 : 12 }, footerFont: { size: isMobile ? 9 : 11 },
+                        padding: isMobile ? 8 : 10, bodySpacing: isMobile ? 3 : 6, boxWidth: isMobile ? 8 : 10, boxHeight: isMobile ? 8 : 10,
+                        yAlign: 'bottom', displayColors: true,
+                        callbacks: {
+                            title: function(context) { return context[0].label; },
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (context.parsed.y !== null) label += ': ' + context.parsed.y.toFixed(0) + '%';
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        generateHtmlLegend(myChart);
+        // Exponer globalmente para actualizar tema
+        window.myChart = myChart; 
+
+        if (isMobile) {
+            setTimeout(() => {
+                const scrollWrapper = document.querySelector('.chart-scroll-wrapper');
+                if (scrollWrapper && scrollWrapper.scrollWidth > scrollWrapper.clientWidth) {
+                    scrollWrapper.scrollLeft = scrollWrapper.scrollWidth;
+                }
+            }, 100);
+        }
+    }
+
+    function generateHtmlLegend(chart) {
+        const legendContainer = document.getElementById('customLegend');
+        legendContainer.innerHTML = ''; 
+        chart.data.datasets.forEach((dataset, index) => {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            const colorBox = document.createElement('span');
+            colorBox.className = 'legend-color-box';
+            colorBox.style.backgroundColor = dataset.borderColor;
+            const text = document.createElement('span');
+            text.textContent = dataset.label;
+            item.appendChild(colorBox); item.appendChild(text);
+            item.onclick = () => {
+                const isVisible = chart.isDatasetVisible(index);
+                if (isVisible) { chart.hide(index); item.classList.add('hidden'); } 
+                else { chart.show(index); item.classList.remove('hidden'); }
+            };
+            legendContainer.appendChild(item);
+        });
+    }
+
+    function renderEmptyChart() {
+        const ctx = document.getElementById('fatigueChart').getContext('2d');
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: ['Sin datos'], datasets: [{ label: 'Sin actividad', data: [], borderColor: '#334155' }] },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // --- CAMBIO DE TEMA (LOGICA MEJORADA) ---
+    const themeBtn = document.getElementById('themeToggle');
+    const headerLogo = document.getElementById('headerLogo');
+    const sidebarLogo = document.getElementById('sidebarLogo');
+
+    function updateLogos(isLight) {
+        const logoSrc = isLight ? 'img/blue-logo.png' : 'img/white-logo.png';
+        if(headerLogo) headerLogo.src = logoSrc;
+        if(sidebarLogo) sidebarLogo.src = logoSrc;
+    }
+
+    themeBtn.addEventListener('click', () => {
+        const currentTheme = document.body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        if (newTheme === 'light') document.body.setAttribute('data-theme', 'light');
+        else document.body.removeAttribute('data-theme');
+
+        updateLogos(newTheme === 'light');
+        localStorage.setItem('theme', newTheme);
+        
+        // ACTUALIZAR GRÁFICA EN TIEMPO REAL
+        if(window.myChart) {
+            const textColor = newTheme === 'light' ? '#475569' : '#94a3b8';
+            const gridColor = newTheme === 'light' ? '#e2e8f0' : '#334155';
+            
+            window.myChart.options.scales.x.ticks.color = textColor;
+            window.myChart.options.scales.y.ticks.color = textColor;
+            window.myChart.options.scales.x.grid.color = gridColor;
+            window.myChart.options.scales.y.grid.color = gridColor;
+            
+            // ACTUALIZAR TAMBIÉN EL TÍTULO "TIEMPO (%)"
+            if(window.myChart.options.scales.y.title) {
+                window.myChart.options.scales.y.title.color = textColor;
+            }
+            
+            window.myChart.update();
+        }
+    });
+
+    // --- LÓGICA DE HISTORIAL ---
+    const tableBody = document.getElementById('historyTable');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    const pageInfo = document.getElementById('pageInfo');
+    const btnFilter = document.getElementById('applyFilters');
+    let currentPage = 1;
+    const pageSize = 10;
+
+    btnFilter.addEventListener('click', () => fetchHistory(1));
+    prevBtn.addEventListener('click', () => { if(currentPage > 1) fetchHistory(currentPage - 1); });
+    nextBtn.addEventListener('click', () => fetchHistory(currentPage + 1));
+
+    async function fetchHistory(page) {
+        if (!currentUserId) return;
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Cargando registros...</td></tr>';
+        const fDate = document.getElementById('filterDate').value;
+        const fType = document.getElementById('filterType').value;
+        const fLevel = document.getElementById('filterLevel').value;
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+
+        const { data: sesiones } = await supabase.from('sesiones_conduccion').select('id_sesion').eq('id_usuario', currentUserId);
+        const sessionIds = sesiones ? sesiones.map(s => s.id_sesion) : [];
+
+        if (sessionIds.length === 0) { renderTable([], 0); return; }
+
+        let query = supabase.from('Alertas').select('*', { count: 'exact' }).in('id_sesion', sessionIds).order('fecha_alerta', { ascending: false }).range(from, to);
+        if (fLevel) query = query.eq('nivel_riesgo', fLevel);
+        if (fType) query = query.ilike('causa_detonante', `%${fType}%`);
+        if (fDate) {
+            const startDate = new Date(fDate);
+            const endDate = new Date(fDate);
+            endDate.setDate(endDate.getDate() + 1);
+            query = query.gte('fecha_alerta', startDate.toISOString()).lt('fecha_alerta', endDate.toISOString());
+        }
+
+        const { data, count, error } = await query;
+        if (!error) { currentPage = page; renderTable(data, count); }
+    }
+
+    function renderTable(data, totalCount) {
+        tableBody.innerHTML = '';
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No se encontraron alertas registradas.</td></tr>';
+            pageInfo.textContent = `Página 1 de 1`;
+            return;
+        }
+        data.forEach(alerta => {
+            const row = document.createElement('tr');
+            const fecha = new Date(alerta.fecha_alerta).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            let levelClass = 'level-normal';
+            if (alerta.nivel_riesgo === 'Alto riesgo') levelClass = 'level-alto';
+            if (alerta.nivel_riesgo === 'Moderado') levelClass = 'level-moderado';
+            if (alerta.nivel_riesgo === 'Leve') levelClass = 'level-leve';
+
+            let causaMostrar = alerta.causa_detonante || 'Desconocida';
+            let valorDisplay = alerta.valor_medido ? alerta.valor_medido.toString() : '-';
+            if (causaMostrar.includes("Somnolencia")) valorDisplay += " eventos"; 
+            else if (causaMostrar.includes("Microsueño")) valorDisplay += " seg";
+            else if (causaMostrar.includes("Bostezos")) valorDisplay += " veces";
+            else if (causaMostrar.includes("Fatiga")) valorDisplay += " parpadeos/min";
+
+            row.innerHTML = `<td>${fecha}</td><td>${causaMostrar}</td><td class="${levelClass}">${alerta.nivel_riesgo}</td><td>${valorDisplay}</td>`;
+            tableBody.appendChild(row);
+        });
+        const totalPages = Math.ceil(totalCount / pageSize);
+        pageInfo.textContent = `Página ${currentPage} de ${totalPages || 1}`;
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage >= totalPages;
+        prevBtn.style.opacity = currentPage === 1 ? "0.5" : "1";
+        nextBtn.style.opacity = currentPage >= totalPages ? "0.5" : "1";
+    }
+
+    const menuBtns = document.querySelectorAll('.menu-btn');
+    menuBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            menuBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            ['inicio','deteccion','usuarios','historial'].forEach(sec => {
+                document.getElementById(sec).style.display = (sec === btn.dataset.target) ? 'block' : 'none';
+            });
+        });
+    });
+
+    initDashboard();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker registrado:', reg.scope))
+        .catch(err => console.log('Error Service Worker:', err));
+    });
+  }
+</script>
+
+</body>
+</html>
