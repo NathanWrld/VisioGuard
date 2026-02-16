@@ -687,7 +687,7 @@ const tutorialData = [
     {
         title: "¡Bienvenido a VisioGuard! 👋",
         text: "Tu copiloto para una conducción segura. Analizamos tu parpadeo y apertura de boca en tiempo real para detectar únicamente sueño o fatiga.",
-        image: "img/tut_intro.png" 
+        image: "img/tut_intro.jpg" 
     },
     {
         title: "Enciende los Motores 🚗",

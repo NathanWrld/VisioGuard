@@ -816,6 +816,15 @@ input:checked + .slider:before { transform: translateX(26px); }
 }
 .tutorial-overlay.active { display: flex; opacity: 1; }
 
+/* center container para boton de deteccion*/
+.center-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
 /* --- CAJA DEL TUTORIAL --- */
 .tutorial-box {
     background: #1e293b;
