@@ -792,103 +792,83 @@ input:checked + .slider:before { transform: translateX(26px); }
     transition: filter 0.3s ease; /* Para que el cambio sea suave */
 }
 
-/* --- BOTÓN FLOTANTE AYUDA (?) --- */
+/* --- BOTÓN FLOTANTE --- */
 .help-btn {
-    position: fixed;
-    bottom: 25px;
-    right: 25px;
-    width: 50px;
-    height: 50px;
-    background: #3b82f6; /* Azul corporativo */
-    color: white;
-    border: none;
-    border-radius: 50%;
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    z-index: 9990;
-    transition: transform 0.2s, background 0.2s;
+    position: fixed; bottom: 25px; right: 25px;
+    width: 50px; height: 50px;
+    background: #3b82f6; color: white;
+    border: none; border-radius: 50%;
+    font-size: 24px; font-weight: bold;
+    cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    z-index: 9990; transition: transform 0.2s;
 }
-.help-btn:hover {
-    transform: scale(1.1);
-    background: #2563eb;
-}
+.help-btn:hover { transform: scale(1.1); background: #2563eb; }
 
-/* --- OVERLAY (CAPA OSCURA) --- */
+/* --- OVERLAY --- */
 .tutorial-overlay {
-    position: fixed;
-    inset: 0;
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.85); /* Fondo más oscuro para resaltar el modal */
     z-index: 10000;
-    display: none; /* Oculto por defecto */
-    opacity: 0;
+    display: none; opacity: 0;
     transition: opacity 0.3s ease;
+    /* Flexbox para centrar perfectamente */
+    align-items: center; justify-content: center;
 }
-.tutorial-overlay.active {
-    display: block;
-    opacity: 1;
-}
+.tutorial-overlay.active { display: flex; opacity: 1; }
 
-/* --- CAJA DE TEXTO FLOTANTE --- */
+/* --- CAJA DEL TUTORIAL --- */
 .tutorial-box {
-    position: absolute;
-    /* Centrado inicial */
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    
-    background: #1e293b; /* Fondo oscuro */
+    background: #1e293b;
     border: 1px solid #334155;
     padding: 25px;
-    border-radius: 12px;
+    border-radius: 16px;
     width: 90%;
-    max-width: 380px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1); /* Movimiento suave */
+    max-width: 360px; /* Ancho fijo para que parezca una tarjeta */
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    position: relative;
+    animation: slideUp 0.3s ease-out;
 }
 
-.tut-icon { font-size: 30px; margin-bottom: 10px; display: block; }
-.tutorial-box h3 { color: #60a5fa; margin: 0 0 10px 0; font-size: 18px; }
-.tutorial-box p { color: #cbd5e1; font-size: 14px; line-height: 1.5; margin: 0 0 20px 0; }
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
 
-/* Botón cerrar (X) */
+/* IMAGEN DEL TUTORIAL */
+.tut-image-container {
+    width: 100%;
+    height: 160px; /* Altura fija para evitar saltos */
+    background: #0f172a;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #334155;
+}
+
+.tutorial-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Ajusta la imagen sin recortarla */
+}
+
+.tutorial-box h3 { color: #60a5fa; margin: 0 0 10px 0; font-size: 20px; }
+.tutorial-box p { color: #cbd5e1; font-size: 15px; line-height: 1.5; margin-bottom: 20px; }
+
 .close-tutorial {
-    position: absolute;
-    top: 10px; right: 15px;
+    position: absolute; top: 10px; right: 15px;
     background: none; border: none;
-    color: #64748b; font-size: 18px; cursor: pointer;
+    color: #64748b; font-size: 22px; cursor: pointer;
 }
 .close-tutorial:hover { color: #fff; }
 
-/* --- CONTROLES INFERIORES --- */
-.tutorial-controls { margin-top: 10px; }
+/* CONTROLES */
 .tutorial-buttons { display: flex; gap: 10px; margin-top: 15px; }
-
-.primary-btn {
-    background: #3b82f6; color: white; border: none;
-    padding: 8px 16px; border-radius: 6px; cursor: pointer; flex: 1;
-    font-size: 14px;
-}
-.secondary-btn {
-    background: transparent; color: #94a3b8; border: 1px solid #334155;
-    padding: 8px 16px; border-radius: 6px; cursor: pointer; flex: 1;
-    font-size: 14px;
-}
-.secondary-btn:hover { background: #334155; color: white; }
-
-/* Indicadores (Dots) */
-.step-indicators { display: flex; justify-content: center; gap: 6px; }
-.dot { width: 8px; height: 8px; background: #334155; border-radius: 50%; transition: all 0.3s; }
-.dot.active { background: #60a5fa; width: 24px; border-radius: 4px; }
-
-/* --- EL FOCO BRILLANTE (Highlight) --- */
-.highlight-box {
-    position: absolute;
-    border: 2px solid #60a5fa; /* Borde azul brillante */
-    border-radius: 8px;
-    /* TRUCO: Una sombra gigante para oscurecer todo lo demás */
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75); 
-    pointer-events: none; /* Permite clics a través si es necesario */
-    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
-    opacity: 0;
-}
-.highlight-box.active { opacity: 1; }
+.primary-btn { background: #3b82f6; color: white; padding: 10px; border-radius: 6px; flex: 1; border:none; cursor: pointer; }
+.secondary-btn { background: transparent; color: #94a3b8; border: 1px solid #334155; padding: 10px; border-radius: 6px; flex: 1; cursor: pointer; }
+.step-indicators { display: flex; justify-content: center; gap: 6px; margin-bottom: 10px;}
+.dot { width: 8px; height: 8px; background: #334155; border-radius: 50%; }
+.dot.active { background: #60a5fa; width: 20px; border-radius: 4px; }
