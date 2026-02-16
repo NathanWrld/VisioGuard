@@ -678,3 +678,179 @@ document.getElementById('nightModeToggle').addEventListener('change', (e) => {
         showToast("Modo Nocturno Desactivado", "info");
     }
 });
+
+// =========================================================
+// SISTEMA DE TUTORIAL INTERACTIVO (ONBOARDING)
+// =========================================================
+
+const tutorialData = [
+    {
+        title: "¡Bienvenido a VisioGuard! 👋",
+        text: "Tu copiloto para una conducción segura. Analizamos tu parpadeo y apertura de boca en tiempo real para detectar únicamente sueño o fatiga.",
+        target: null // null = Centrado en pantalla
+    },
+    {
+        title: "Enciende los Motores 🚗",
+        text: "Presiona 'Iniciar Detección' antes de arrancar. Recuerda aceptar el permiso de la cámara para que el sistema funcione.",
+        target: "startDetection" // ID del botón iniciar
+    },
+    {
+        title: "Conducción Nocturna 🌙",
+        text: "Si hay poca luz, activa este interruptor. Aplicaremos filtros de brillo y contraste para que la cámara te detecte mejor.",
+        target: "nightModeToggle" // ID del switch
+    },
+    {
+        title: "Te mantenemos alerta 🚨",
+        text: "Si detectamos microsueños (ojos cerrados) o bostezos continuos, sonará una alarma y tu estado cambiará aquí.",
+        target: "estado" // ID del div de estado
+    },
+    {
+        title: "Gráfica de Sesiones de Conducción 📊",
+        text: "Esta gráfica muestra la evolución de los minutos acumulados por estado en los últimos 30 días, desde Normal hasta Microsueño.",
+        target: "fatigueChart" // ID del canvas de la gráfica
+    },
+    {
+        title: "Reporte y Salud 📄",
+        text: "Si necesitas más detalles, descarga un informe PDF. Si la fatiga es recurrente, te sugeriremos consultar a un especialista.",
+        target: "btnDownloadPDF" // ID del botón PDF
+    }
+];
+
+let currentStep = 0;
+
+// Referencias DOM
+const tutOverlay = document.getElementById('tutorialOverlay');
+const tutBox = document.querySelector('.tutorial-box');
+const tutHighlight = document.getElementById('tutHighlight');
+const tutTitle = document.getElementById('tutTitle');
+const tutText = document.getElementById('tutText');
+const tutIcon = document.getElementById('tutIcon');
+const stepIndicators = document.getElementById('stepIndicators');
+const btnPrev = document.getElementById('tutPrev');
+const btnNext = document.getElementById('tutNext');
+
+// --- FUNCIONES ---
+
+function startTutorial() {
+    currentStep = 0;
+    tutOverlay.classList.add('active');
+    updateTutorialUI();
+}
+
+function closeTutorial(finish = false) {
+    tutOverlay.classList.remove('active');
+    if (finish) {
+        // Guardar en memoria que ya se vio el tutorial
+        localStorage.setItem('visioGuard_tutorial_seen', 'true');
+    }
+}
+
+function updateTutorialUI() {
+    const data = tutorialData[currentStep];
+    
+    // 1. Llenar textos
+    tutTitle.textContent = data.title;
+    tutText.textContent = data.text;
+    
+    // Icono opcional según el paso (puedes personalizar más)
+    tutIcon.style.display = currentStep === 0 ? 'block' : 'none';
+
+    // 2. Gestionar Botones
+    btnPrev.style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+    
+    if (currentStep === tutorialData.length - 1) {
+        btnNext.textContent = '¡Entendido!';
+        btnNext.style.backgroundColor = '#10b981'; // Verde para finalizar
+    } else {
+        btnNext.textContent = 'Siguiente';
+        btnNext.style.backgroundColor = '#3b82f6'; // Azul normal
+    }
+
+    // 3. Indicadores (Puntos)
+    stepIndicators.innerHTML = tutorialData.map((_, i) => 
+        `<div class="dot ${i === currentStep ? 'active' : ''}"></div>`
+    ).join('');
+
+    // 4. Mover el Foco (Highlight) y la Caja
+    if (data.target) {
+        const targetEl = document.getElementById(data.target);
+        
+        // Verificamos si el elemento existe y es visible en pantalla
+        if (targetEl && targetEl.offsetParent !== null) {
+            const rect = targetEl.getBoundingClientRect();
+            const scrollY = window.scrollY || window.pageYOffset;
+            
+            // Posicionar el recuadro brillante (Highlight)
+            tutHighlight.classList.add('active');
+            tutHighlight.style.top = `${rect.top + scrollY - 5}px`;
+            tutHighlight.style.left = `${rect.left - 5}px`;
+            tutHighlight.style.width = `${rect.width + 10}px`;
+            tutHighlight.style.height = `${rect.height + 10}px`;
+
+            // Calcular dónde poner la caja de texto (Evitar tapar el elemento)
+            // Lógica: Si hay espacio abajo, ponla abajo. Si no, arriba.
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const boxHeight = tutBox.offsetHeight || 220; // Altura estimada
+
+            // Centramos horizontalmente respecto a la pantalla (más seguro para móviles)
+            tutBox.style.left = '50%';
+            tutBox.style.transform = 'translateX(-50%)';
+
+            if (spaceBelow < boxHeight + 20) {
+                // Poner Arriba del elemento
+                tutBox.style.top = `${rect.top + scrollY - 20 - boxHeight}px`;
+            } else {
+                // Poner Abajo del elemento
+                tutBox.style.top = `${rect.bottom + scrollY + 20}px`;
+            }
+            
+        } else {
+            // Si el elemento objetivo no está visible (ej. error de ID), centramos la caja
+            centerTutorialBox();
+        }
+    } else {
+        // Paso 1 (Sin target): Centrado
+        centerTutorialBox();
+    }
+}
+
+function centerTutorialBox() {
+    tutHighlight.classList.remove('active'); // Ocultar foco
+    tutBox.style.top = '50%';
+    tutBox.style.left = '50%';
+    tutBox.style.transform = 'translate(-50%, -50%)';
+}
+
+// --- EVENTOS ---
+
+btnNext.onclick = () => {
+    if (currentStep < tutorialData.length - 1) {
+        currentStep++;
+        updateTutorialUI();
+    } else {
+        closeTutorial(true); // Terminado
+    }
+};
+
+btnPrev.onclick = () => {
+    if (currentStep > 0) {
+        currentStep--;
+        updateTutorialUI();
+    }
+};
+
+document.getElementById('skipTutorial').onclick = () => closeTutorial(true);
+
+// Botón flotante (?) para abrirlo manualmente
+document.getElementById('helpBtn').onclick = startTutorial;
+
+// Auto-inicio al cargar (si nunca lo ha visto)
+window.addEventListener('load', () => {
+    // Pequeño delay de 1s para asegurar que la interfaz cargó
+    setTimeout(() => {
+        const seen = localStorage.getItem('visioGuard_tutorial_seen');
+        if (!seen) {
+            startTutorial();
+        }
+    }, 1000);
+});

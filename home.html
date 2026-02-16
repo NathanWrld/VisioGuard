@@ -266,6 +266,33 @@
 <!-- ESTILOS MODAL -->
 <div id="toastContainer" class="toast-container"></div>
 
+<!-- Guia para el usuario -->
+<button id="helpBtn" class="help-btn" title="Ver Tutorial">?</button>
+
+<div id="tutorialOverlay" class="tutorial-overlay">
+    
+    <div class="tutorial-box">
+        <button class="close-tutorial" id="skipTutorial" title="Saltar tutorial">✕</button>
+        
+        <div class="tutorial-content">
+            <div class="tut-icon" id="tutIcon">👋</div>
+            <h3 id="tutTitle">Título</h3>
+            <p id="tutText">Texto explicativo.</p>
+        </div>
+        
+        <div class="tutorial-controls">
+            <div class="step-indicators" id="stepIndicators"></div>
+            
+            <div class="tutorial-buttons">
+                <button id="tutPrev" class="secondary-btn">Anterior</button>
+                <button id="tutNext" class="primary-btn">Siguiente</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tutHighlight" class="highlight-box"></div>
+</div>
+
 <script type="module" src="script.js"></script>
 <script src="burger-btn.js"></script>
 
