@@ -686,18 +686,13 @@ document.getElementById('nightModeToggle').addEventListener('change', (e) => {
 const tutorialData = [
     {
         title: "¡Bienvenido a VisioGuard! 👋",
-        text: "Tu copiloto para una conducción segura. Analizamos tu parpadeo y apertura de boca en tiempo real para detectar únicamente sueño o fatiga.",
+        text: "Tu copiloto para una conducción segura. Analizamos tu parpadeo y apertura de boca en tiempo real para detectar sueño o fatiga.",
         image: "img/tut_intro.jpg" 
     },
     {
         title: "Enciende los Motores 🚗",
-        text: "Presiona 'Iniciar Detección' antes de arrancar. Recuerda aceptar el permiso de la cámara para que el sistema funcione.",
+        text: "Presiona 'Iniciar Detección' antes de arrancar. Recuerda aceptar el permiso de la cámara para que el sistema funcione. Ademas manten los ojos abiertos y la boca cerrada mientras el sistema ajusta tus parametros",
         image: "img/tut_start.png"
-    },
-    {
-        title: "Conducción Nocturna 🌙",
-        text: "Si hay poca luz, activa este interruptor. Aplicaremos filtros de brillo y contraste para que la cámara te detecte mejor.",
-        image: "img/tut_night.png"
     },
     {
         title: "Te mantenemos alerta 🚨",
