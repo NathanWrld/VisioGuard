@@ -316,6 +316,13 @@ h2 {margin-bottom: 20px;}
   gap: 30px;
 }
 
+.cam-wrapper{
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
 video, canvas.output_canvas {
   border-radius: 12px;
   width: 50%;
