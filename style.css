@@ -312,6 +312,8 @@ h2 {margin-bottom: 20px;}
 .cam-container {
   display: flex;
   justify-content: center;
+  flex-direction: column;
+  gap: 30px;
 }
 
 video, canvas.output_canvas {
@@ -775,7 +777,7 @@ video, canvas.output_canvas {
 
 /* SWITCH MODO NOCTURNO Canva */
 .night-mode-container {
-    display: flex; align-items: center; justify-content: center;
+    display: none; align-items: center; justify-content: center;
     gap: 15px; margin-bottom: 20px;
     background: var(--bg-input); padding: 10px; border-radius: 8px;
     border: 1px solid var(--border-color);
