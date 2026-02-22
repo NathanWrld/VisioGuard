@@ -320,7 +320,6 @@ h2 {margin-bottom: 20px;}
   display: flex;
   justify-content: center;
   gap: 30px;
-  flex-wrap: wrap;
 }
 
 video, canvas.output_canvas {
@@ -352,6 +351,11 @@ video, canvas.output_canvas {
     height: 240px;
   }
   .cam-container { flex-direction: column; }
+
+  .cam-wrapper {
+    flex-direction: column;
+    gap: 20px;
+  }
 }
 
 /* ==========================================================================
