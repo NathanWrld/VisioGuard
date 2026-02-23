@@ -696,7 +696,7 @@ const tutorialData = [
     },
     {
         title: "Te mantenemos alerta 🚨",
-        text: "Si detectamos microsueños (ojos cerrados) o bostezos continuos, sonará una alarma y tu estado cambiará a 'Alto Riesgo'.",
+        text: "Si detectamos alguna anormalidad, sonará una alarma y tu estado cambiará al nivel de riesgo correspondiente.",
         image: "img/tut_alert.jpeg"
     },
     {
