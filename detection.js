@@ -138,7 +138,7 @@ export async function startDetection({ rol, videoElement, canvasElement, estado,
     
     // Tiempos (En Segundos)
     const MICROSUEÑO_THRESHOLD = 2.0; 
-    const MIN_SLOW_BLINK_DURATION = 0.5; 
+    const MIN_SLOW_BLINK_DURATION = 0.65; 
     const MIN_YAWN_DURATION = 0.8; 
     
     const FPS = 30; // Referencial para yawns
@@ -271,26 +271,30 @@ export async function startDetection({ rol, videoElement, canvasElement, estado,
         const recentYawns = yawnsBuffer.length;
 
         // =====================================================================
-        // LÓGICA DE OJOS (CON CORRECCIÓN DE TIEMPO REAL)
+        // LÓGICA DE OJOS (REFINADA: FILTRO DE RUIDO + VALIDACIÓN DE TIEMPO)
         // =====================================================================
-        const consideredClosed = smoothedEAR < EAR_THRESHOLD || derivative < DERIVATIVE_THRESHOLD;
+
+        // 1. Condición de cierre más estricta para evitar que sombras o frames movidos cuenten como cierre
+        const isEarExtremelyLow = smoothedEAR < EAR_THRESHOLD;
+        const isClosingFast = derivative < (DERIVATIVE_THRESHOLD * 1.2); 
+        const consideredClosed = isEarExtremelyLow || (isClosingFast && smoothedEAR < EAR_THRESHOLD * 1.1);
 
         if (consideredClosed) {
             if (isYawningNow) {
-                // Durante un bostezo los ojos se entrecierran, ignoramos para evitar falsos positivos
+                // Ignoramos si está bostezando
                 closedFrameCounter = 0; 
                 eyeClosedStartTime = 0; 
                 reopenGraceCounter = 0;
             } else {
-                // Iniciar cronómetro si es el primer frame cerrado
-                if (eyeClosedStartTime === 0) {
+                closedFrameCounter++;
+                // Solo iniciamos el cronómetro si el ojo se mantiene cerrado más de 1 frame (ruido eliminado)
+                if (closedFrameCounter >= 2 && eyeClosedStartTime === 0) {
                     eyeClosedStartTime = Date.now();
                 }
-                closedFrameCounter++;
             }
-            
             reopenGraceCounter = 0;
-            
+
+            // Cambiamos estado a cerrado si superamos el umbral de frames confirmados
             if (eyeState === 'open' && closedFrameCounter >= CLOSED_FRAMES_THRESHOLD) {
                 eyeState = 'closed';
             }
@@ -298,9 +302,10 @@ export async function startDetection({ rol, videoElement, canvasElement, estado,
             // El usuario está abriendo los ojos
             reopenGraceCounter++;
             
+            // Esperamos unos frames de gracia para confirmar que el ojo se QUEDÓ abierto
             if (reopenGraceCounter >= EYE_REOPEN_GRACE_FRAMES) {
                 if (eyeState === 'closed') {
-                    // --- OJO ABIERTO: CALCULAR DURACIÓN REAL ---
+                    // --- CALCULAR DURACIÓN REAL ---
                     let totalClosedDuration = 0;
                     if (eyeClosedStartTime > 0) {
                         totalClosedDuration = (Date.now() - eyeClosedStartTime) / 1000;
@@ -308,8 +313,7 @@ export async function startDetection({ rol, videoElement, canvasElement, estado,
 
                     // A. Si veníamos de una alerta de microsueño
                     if (microsleepTriggered) {
-                        console.log(`🚨 Microsueño finalizado. Duración real: ${totalClosedDuration.toFixed(2)}s`);
-                        
+                        console.log(`🚨 Microsueño finalizado. Duración: ${totalClosedDuration.toFixed(2)}s`);
                         sendDetectionEvent({
                             type: 'ALERTA',
                             sessionId,
@@ -319,21 +323,20 @@ export async function startDetection({ rol, videoElement, canvasElement, estado,
                             immediate: true,
                             realDuration: totalClosedDuration 
                         });
-                        
                         microsleepTriggered = false; 
                     }
-                    // B. Si fue un parpadeo lento (entre 0.5s y 2.0s)
-                    else if (totalClosedDuration > MIN_SLOW_BLINK_DURATION && totalClosedDuration < MICROSUEÑO_THRESHOLD) {
+                    // B. PARPADEO LENTO (Ajustado a > 0.65s para evitar falsos positivos de parpadeos normales)
+                    else if (totalClosedDuration >= 0.65 && totalClosedDuration < MICROSUEÑO_THRESHOLD) {
                         slowBlinksBuffer.push(Date.now());
-                        console.log(`🐢 Parpadeo Lento detectado: ${totalClosedDuration.toFixed(2)}s`);
+                        console.log(`🐢 Parpadeo Lento REAL: ${totalClosedDuration.toFixed(2)}s`);
                     }
 
-                    // Registrar parpadeo normal
+                    // Siempre registramos un parpadeo para la estadística general
                     blinkTimestamps.push(Date.now());
                     eyeState = 'open';
                 }
                 
-                // Resetear variables de cierre
+                // Reset absoluto de variables de control al estar el ojo abierto
                 closedFrameCounter = 0;
                 eyeClosedStartTime = 0;
             }
