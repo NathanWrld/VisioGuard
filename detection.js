@@ -387,38 +387,48 @@ export async function startDetection({ rol, videoElement, canvasElement, estado,
             }
         } 
         
-        // --- NIVEL 2: MODERADO (SOMNOLENCIA / BOSTEZOS) ---
-        else if (recentSlowBlinks >= 3 || recentYawns >= 2 || (recentYawns >= 1 && recentSlowBlinks >= 2)) {
+        // --- NIVEL 2: MODERADO (SOMNOLENCIA / BOSTEZOS COMBINADOS) ---
+        else if (
+            (recentSlowBlinks >= 3 && recentYawns >= 2) || // Condición A: 3 parpadeos lentos Y 2 bostezos
+            (recentSlowBlinks >= 5)                        // Condición B: Simplemente 5 parpadeos lentos
+        ) {
             riskLevel = 'Moderado';
             
-            // Pausar alarma crítica si bajamos de nivel
+            // Pausar alarma crítica si bajamos de nivel (si veníamos de un microsueño)
             if (!microsleepTriggered && alarmAudio && !alarmAudio.paused) {
                 alarmAudio.pause();
                 alarmAudio.currentTime = 0;
             }
 
             if (!moderateAlertCooldown) {
-                // Lógica de escalado de advertencias
+                // Lógica de escalado de advertencias (reset cada 2 min)
                 if (Date.now() - lastWarningTime > 120000) moderateWarningCount = 0;
                 moderateWarningCount++;
                 lastWarningTime = Date.now();
 
-                // Sonido suave
+                // Sonido suave de notificación
                 if (notifyAudio) {
                     notifyAudio.currentTime = 0;
                     notifyAudio.play().catch(e => console.error(e));
                 }
 
+                // Determinar razón para el mensaje del Popup
+                let razon = "";
+                if (recentSlowBlinks >= 5) {
+                    razon = "Parpadeo excesivamente lento.";
+                } else {
+                    razon = "Fatiga y bostezos detectados.";
+                }
+
                 // Popup visual
                 if (popupContent) {
-                    let razon = recentYawns >= 2 ? "Bostezos frecuentes." : "Somnolencia detectada.";
                     warningPopup.className = moderateWarningCount >= 3 ? "warning-popup alert-red active" : "warning-popup alert-orange active";
                     popupContent.innerHTML = moderateWarningCount >= 3 
                         ? `<h3>🛑 DESCANSO SUGERIDO</h3><p>${razon}</p><p>Fatiga persistente.</p>`
                         : `<h3>⚠️ Atención</h3><p>${razon}</p><p>Manténgase alerta.</p>`;
                 }
 
-                // Guardar Alerta
+                // Guardar Alerta en Supabase
                 sendDetectionEvent({
                     type: 'ALERTA',
                     sessionId,
@@ -430,12 +440,15 @@ export async function startDetection({ rol, videoElement, canvasElement, estado,
                     totalYawns: recentYawns
                 });
 
-                // Limpiar buffers para no repetir alerta inmediatamente
+                // IMPORTANTE: Limpiar buffers para evitar disparos infinitos en el mismo minuto
+                // Pero solo si se emitió la alerta
                 slowBlinksBuffer = []; 
                 yawnsBuffer = [];
 
                 moderateAlertCooldown = true;
+                // Quitar popup tras 6 segundos
                 setTimeout(() => { if (riskLevel !== 'Alto riesgo') warningPopup.classList.remove('active'); }, 6000);
+                // Cooldown de 15 segundos para no saturar de sonidos
                 setTimeout(() => moderateAlertCooldown = false, 15000);
             }
             lastModerateTimestamp = now;
@@ -519,8 +532,8 @@ export async function startDetection({ rol, videoElement, canvasElement, estado,
 
         estado.innerHTML = `
             <p style="font-size:14px">Parpadeos/min: ${totalBlinksLastMinute}</p>
-            <p style="font-size:14px">P. Lentos (1min): ${recentSlowBlinks} (Min: 3)</p>
-            <p style="font-size:14px">Bostezos (1min): ${recentYawns} (Min: 2)</p>
+            <p style="font-size:14px">P. Lentos (1min): ${recentSlowBlinks} / 5</p>
+            <p style="font-size:14px">Combinado: ${recentSlowBlinks}/3 P.L. + ${recentYawns}/2 Bost.</p>
             <p style="font-weight:bold; color:${colorEstado}">Estado: ${riskLevel}</p>
             ${isNightMode ? '<p style="font-size:12px; color:#60a5fa">🌙 Filtro Nocturno: ACTIVO</p>' : ''}
         `;
